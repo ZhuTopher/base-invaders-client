@@ -24,7 +24,7 @@ class Commands:
 
     def receive(self):
         try:
-            data = self.server.recv(2048)
+            data = self.server.recv(4096)
             if data:
                 return data.decode('utf-8')
             else:
@@ -85,11 +85,17 @@ class Commands:
             self.server.send('BOMB ' + str(x) + ' ' + str(y) + ' ' + args[0])
         else:
             self.server.send('BOMB ' + str(x) + ' ' + str(y))
-        return self.receive()
+        resp = self.receive()
+        if "ERROR" in resp:
+            raise Exception("Bomb too soon")
+        return resp
 
     def scan(self, x, y):
         self.server.send('SCAN ' + str(x) + ' ' + str(y))
-        return self.parseScan(self.receive().split()[1:])
+        resp = self.receive()
+        if "ERROR" in resp:
+            raise Exception("Scanning too soon")
+        return self.parseScan(resp.split()[1:])
 
     def scoreboard(self):
         # (name, score, mines)
