@@ -9,7 +9,7 @@ from time import time
 
 commands = Commands()
 
-EPSILON = 0.015
+EPSILON = 0.05
 
 class Ship:
     def __init__(self, x, y, dx, dy, angle):
@@ -69,7 +69,8 @@ def bombRoam(ship, conf):
 
 
     if ship.a and ship.aPrev:
-        deltaT = (conf['bomb_delay']-0.25)
+        delay = min(20, conf['bomb_delay'])
+        deltaT = delay/25
         futureX = ship.x + (ship.dx*deltaT)+0.5*(ship.a[0] * cos(ship.a[1]))*pow(deltaT, 2)
         futureY = ship.y + (ship.dy*deltaT)+0.5*(ship.a[0] * sin(ship.a[1]))*pow(deltaT, 2)
         dist = sqrt(pow(futureX-ship.x, 2) + pow(futureY-ship.y, 2))
@@ -78,16 +79,16 @@ def bombRoam(ship, conf):
         if dist > conf['bomb_place_radius']:
             print "Attempting Bomb BOOST"
             try:
-                commands.bomb(ship.x-1, ship.y-1, conf['bomb_delay'])
+                commands.bomb(ship.x-1, ship.y-1, delay)
             except:
                 pass
         else:
             try:
-                commands.bomb(int(futureX), int(futureY), conf['bomb_delay'])
+                commands.bomb(int(futureX), int(futureY), delay)
             except:
                 pass
 
-            print "BOMB at (" + str(futureX) + ", " + str(futureY) + ") : " + str(deltaT)        
+            print "BOMB at (" + str(futureX) + ", " + str(futureY) + ") : " + str(delay)
 
 def goToTarget(ship):
     print "DX: " + str(ship.dx)
@@ -153,8 +154,9 @@ if __name__ == '__main__':
                 setTarget(ship, findBestMine(ship, mines))
             else:
                 try:
-                    scan = commands.scan(int(conf['scan_radius']*cos(ship.angle) + ship.x),
-                        int(conf['scan_radius']*sin(ship.angle) + ship.y))
+                    # scan = commands.scan(int(conf['scan_radius']*cos(ship.angle) + ship.x),
+                    #     int(conf['scan_radius']*sin(ship.angle) + ship.y))
+                    scan = commands.scan(ship.x, ship.y)
                     scannerMines = filter(lambda x: x[0] != 'kanata', scan['mines'])
                     if scannerMines:
                         print "FOUND SCANNER MINE"
