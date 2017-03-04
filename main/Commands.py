@@ -1,8 +1,27 @@
-class Commands:
+import socket
+import sys
 
-    def __init__(self, connection_endpoint, username, password):
-        server = os.
-        server.send(username + ' ' + password)
+
+class Commands:
+    host = 'localhost'
+    port = 6060
+
+    def __init__(self):
+        try:
+            server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        except socket.error:
+            print 'Failed to create socket'
+            sys.exit()
+
+        try:
+            remote_ip = socket.gethostbyname(self.host)
+            server.connect((self.host, self.port))
+        except socket.gaierror:
+            print 'Hostname could not be resolved. Exiting'
+            sys.exit()
+
+        print 'Socket Connected to ' + self.host + ' on ip ' + remote_ip
+
 
     def parseStatus(self, response):
         words = response.split()
@@ -15,55 +34,56 @@ class Commands:
         mine_lst = []
         # iterate over mines (owner, x, y)
         for i in range(7, 7 + num_mines * 3, 3):
-            mine_lst.append((words[i], words[i+1], words[i+2]))
+            mine_lst.append((words[i], words[i + 1], words[i + 2]))
 
         response_dict['mines'] = mine_lst
         cur_index = 7 + num_mines * 3
         num_players = words[cur_index + 1]
         player_lst = []
         for i in range(cur_index + 2, cur_index + num_players * 4, 4):
-            player_lst.append((words[i], words[i+1], words[i+2], words[i+3]))
+            player_lst.append((words[i], words[i + 1], words[i + 2], words[i + 3]))
         response_dict['players'] = player_lst
 
         cur_index = cur_index + num_players * 4
         num_bombs = words[cur_index + 1]
         bomb_lst = []
         for i in range(cur_index + 2, cur_index + num_players * 2, 2):
-            player_lst.append((words[i], words[i+1]))
+            player_lst.append((words[i], words[i + 1]))
         response_dict['bombs'] = bomb_lst
 
         return response_dict
 
+
     def getStatus(self):
-        response = server.send('STATUS')
+        response = self.server.send('STATUS')
         return self.parseStatus(response)
 
-    def accelerate(self, rad, accel):
-        server.send('ACCELERATE ' + str(rad) + str(accel))
 
-    def break(self):
-        server.send('BREAK')
+    def accelerate(self, rad, accel):
+        self.server.send('ACCELERATE ' + str(rad) + str(accel))
+
+
+    def stop(self):
+        self.server.send('BREAK')
 
     def scan(self, x, y, *args):
         if args:
-            server.send('SCAN ' + str(x) + ' ' + str(y) + args[0]
+            self.server.send('SCAN ' + str(x) + ' ' + str(y) + args[0])
         else:
-            server.send('SCAN ' + str(x) + ' ' + str(y)
+            self.server.send('SCAN ' + str(x) + ' ' + str(y))
 
-    def scan(self, x, y):
-        response = server.send('SCAN ' + str(x) + ' ' + str(y))
-        return self.parseStatus(response)
 
     def scoreboard(self):
-        response = server.send('SCOREBOARD')
+        response = self.server.send('SCOREBOARD')
         words = response.split()
         scores = []
         for i in range(1, len(words) + 1, 3):
-            scores.append((words[i], words[i+1], words[i+2]))
+            scores.append((words[i], words[i + 1], words[i + 2]))
         return scores
 
+
     def configurations(self):
-        response = server.send('CONFIGURATIONS')
+        response = self.server.send('CONFIGURATIONS')
         words = response.split()
         response_dict = dict()
         response_dict['map_width'] = words[1]
