@@ -12,7 +12,7 @@ import (
 
 // Return the Bloomburg game server's address
 func GetServerAddr() (string, error) {
-	addr := "codebb.cloudapp.net:17429/"//os.Getenv("BASE_IVDR_ADDR")
+	addr := "codebb.cloudapp.net:17429"//os.Getenv("BASE_IVDR_ADDR")
 	if addr == "" {
 		return "", errors.New("Missing/empty environment variable")
 	}
@@ -109,7 +109,7 @@ func main() {
 
 func StartCommandsServer(commChan *chan string) {
     defer func(commChan *chan string){
-        (*commChan) <- "q" // incidicate to close BI conn
+        //(*commChan) <- "q" // incidicate to close BI conn
     }(commChan)
 
     service := ":6060"

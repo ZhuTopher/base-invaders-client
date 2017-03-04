@@ -2,4 +2,4 @@ from Commands import Commands
 
 command = Commands()
 
-print command.getStatus()
+print command.accelerate(1, 1)
