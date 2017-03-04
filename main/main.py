@@ -114,6 +114,10 @@ def isMineOwned(mine, mines):
             return True
     return False
 
+def setTarget(ship, mine):
+    ship.target = mine
+    ship.startTargetTime = time()
+
 if __name__ == '__main__':
     ship = Ship(0,0,0,0,0)
     while(True):
@@ -150,9 +154,16 @@ if __name__ == '__main__':
             mines = filter(lambda x: x[0] != 'kanata',status_dict['mines'])
             if mines:
                 print "FOUND TARGET"
-                ship.target = findBestMine(ship, mines)
-                ship.startTargetTime = time()
-                ship.hasStopped = False
+                setTarget(ship, findBestMine(ship, mines))
+            else:
+                try:
+                    scan = commands.scan(ship.x, ship.y)
+                    scannerMines = filter(lambda x: x[0] != 'kanata', scan['mines'])
+                    if scannerMines:
+                        print "FOUND SCANNER MINE"
+                        setTarget(ship, findBestMine(ship, scannerMines))
+                except:
+                    pass
         else:
             if time() - ship.startTargetTime > 15:
                 print str(time()) + ' ' + str(ship.startTargetTime)
