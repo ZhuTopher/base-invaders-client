@@ -82,7 +82,7 @@ class Commands:
 
     def bomb(self, x, y, *args):
         if args:
-            self.server.send('BOMB ' + str(x) + ' ' + str(y) + ' ' + args[0])
+            self.server.send('BOMB ' + str(x) + ' ' + str(y) + ' ' + str(args[0]))
         else:
             self.server.send('BOMB ' + str(x) + ' ' + str(y))
         resp = self.receive()
@@ -119,7 +119,7 @@ class Commands:
         response_dict['brake_friction'] = float(words[12])
         response_dict['bomb_place_radius'] = float(words[14])
         response_dict['bomb_effect_radius'] = float(words[16])
-        response_dict['bomb_delay'] = float(words[18])
+        response_dict['bomb_delay'] = int(words[18])
         response_dict['bomb_power'] = float(words[20])
         response_dict['scan_radius'] = float(words[22])
         response_dict['scan_delay'] = float(words[24])
