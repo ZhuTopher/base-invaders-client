@@ -40,21 +40,24 @@ class Commands:
         response_dict['y'] = words[2]
         response_dict['dx'] = words[3]
         response_dict['dy'] = words[4]
-        num_mines = int(words[6])
+        cur_index = 6
+        num_mines = int(words[cur_index])
         mine_lst = []
         # iterate over mines (owner, x, y)
-        for i in range(7, 7 + num_mines * 3, 3):
+        for i in range(cur_index + 1, cur_index + 1 + num_mines * 3, 3):
             mine_lst.append((words[i], words[i + 1], words[i + 2]))
 
         response_dict['mines'] = mine_lst
-        cur_index = 7 + num_mines * 3 + 1
+
+        cur_index = cur_index + 1 + num_mines * 3 + 1
         num_players = int(words[cur_index])
         player_lst = []
+        # iterate over player
         for i in range(cur_index + 1, cur_index + 1 + num_players * 4, 4):
             player_lst.append((words[i], words[i + 1], words[i + 2], words[i + 3]))
         response_dict['players'] = player_lst
 
-        cur_index = cur_index + num_players * 4 + 1
+        cur_index = cur_index + 1 + num_players * 4 + 1
         num_bombs = int(words[cur_index])
         bomb_lst = []
         for i in range(cur_index + 1, cur_index + 1 + num_bombs * 2, 2):
@@ -70,7 +73,7 @@ class Commands:
 
 
     def accelerate(self, rad, accel):
-        self.server.send('ACCELERATE ' + str(rad) + str(accel))
+        self.server.send('ACCELERATE ' + str(rad) + ' ' + str(accel))
 
 
     def stop(self):
@@ -78,7 +81,7 @@ class Commands:
 
     def scan(self, x, y, *args):
         if args:
-            self.server.send('SCAN ' + str(x) + ' ' + str(y) + args[0])
+            self.server.send('SCAN ' + str(x) + ' ' + str(y) + ' ' + args[0])
         else:
             self.server.send('SCAN ' + str(x) + ' ' + str(y))
 
