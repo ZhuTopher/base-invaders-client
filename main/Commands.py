@@ -8,20 +8,30 @@ class Commands:
 
     def __init__(self):
         try:
-            server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except socket.error:
             print 'Failed to create socket'
             sys.exit()
 
         try:
             remote_ip = socket.gethostbyname(self.host)
-            server.connect((self.host, self.port))
+            self.server.connect((self.host, self.port))
         except socket.gaierror:
             print 'Hostname could not be resolved. Exiting'
             sys.exit()
 
         print 'Socket Connected to ' + self.host + ' on ip ' + remote_ip
 
+
+    def receive(self):
+        try:
+            data = self.server.recv(2048)
+            if data:
+                return data.decode('utf-8')
+            else:
+                raise "you dumb"
+        except:
+            raise "you dumb"
 
     def parseStatus(self, response):
         words = response.split()
@@ -47,7 +57,7 @@ class Commands:
         cur_index = cur_index + num_players * 4
         num_bombs = words[cur_index + 1]
         bomb_lst = []
-        for i in range(cur_index + 2, cur_index + num_players * 2, 2):
+        for i in range(cur_index + 2, cur_index + num_bombs * 2, 2):
             player_lst.append((words[i], words[i + 1]))
         response_dict['bombs'] = bomb_lst
 
@@ -55,8 +65,8 @@ class Commands:
 
 
     def getStatus(self):
-        response = self.server.send('STATUS')
-        return self.parseStatus(response)
+        self.server.send('STATUS')
+        return self.parseStatus(self.receive())
 
 
     def accelerate(self, rad, accel):
@@ -74,8 +84,8 @@ class Commands:
 
 
     def scoreboard(self):
-        response = self.server.send('SCOREBOARD')
-        words = response.split()
+        self.server.send('SCOREBOARD')
+        words = self.receive().split()
         scores = []
         for i in range(1, len(words) + 1, 3):
             scores.append((words[i], words[i + 1], words[i + 2]))
@@ -83,8 +93,8 @@ class Commands:
 
 
     def configurations(self):
-        response = self.server.send('CONFIGURATIONS')
-        words = response.split()
+        self.server.send('CONFIGURATIONS')
+        words = self.receive().split()
         response_dict = dict()
         response_dict['map_width'] = words[1]
         response_dict['map_height'] = words[3]
