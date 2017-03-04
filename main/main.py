@@ -1,13 +1,14 @@
 from Commands import Commands
 
-from operator import sub
+from operator import sub, mul
 
 from math import atan2, pi, sqrt, pow
 from random import random
+from time import time
 
 commands = Commands()
 
-EPSILON = 0.005
+EPSILON = 0.015
 
 class Ship:
     def __init__(self, x, y, dx, dy, angle):
@@ -16,9 +17,11 @@ class Ship:
         self.dx = dx
         self.dy = dy
         self.angle = angle
+        self.accelDir = None
 
         self.target = None
         self.roaming = False
+        self.startTargetTime = time()
 
 def toProperRad(a):
     return a + pi
@@ -49,7 +52,9 @@ def findBestMine(ship, mines):
 
 
 def roam(ship):
-    commands.accelerate(random() * 2* pi, 1)
+    ship.angle = random() * 2* pi
+    commands.accelerate(ship.angle, 1)
+
     ship.roaming = True
 
 def goToTarget(ship):
@@ -58,8 +63,14 @@ def goToTarget(ship):
 
     if (ship.dx <= EPSILON and ship.dy <= EPSILON):
         print "MOVING TO TARGET"
-        angle = toProperRad(atan2(ship.y-ship.target[1], ship.x-ship.target[0]))
-        commands.accelerate(angle, 1)
+        ship.angle = toProperRad(atan2(ship.y-ship.target[1], ship.x-ship.target[0]))
+        ship.accelDir = [ship.x-ship.target[0], ship.y-ship.target[1]]
+        commands.accelerate(ship.angle, 1)
+
+    print "SHIP ACCEL DIR: " + str(ship.accelDir)
+    if ship.accelDir and sum(map(mul, ship.accelDir, [ship.x-ship.target[0], ship.y-ship.target[1]])) > 0:
+        ship.angle = toProperRad(atan2(ship.y-ship.target[1], ship.x-ship.target[0]))
+        commands.accelerate(ship.angle, 1)
 
 def isMineOwned(mine, mines):
     print "Checking for" + str(mine)
@@ -97,8 +108,13 @@ if __name__ == '__main__':
                 if mines:
                     print "FOUND TARGET"
                     ship.target = findBestMine(ship, mines)
+                    ship.startTargetTime = time()
                     ship.roaming = False
                     commands.stop()
         else:
-            goToTarget(ship)
+            if time() - ship.startTargetTime > 15:
+                print str(time()) + ' ' + str(ship.startTargetTime)
+                ship.target = None
+            else:
+                goToTarget(ship)
 
