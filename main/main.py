@@ -9,7 +9,7 @@ from time import time
 
 commands = Commands()
 
-EPSILON = 0.015
+EPSILON = 0.05
 
 class Ship:
     def __init__(self, x, y, dx, dy, angle):
@@ -69,7 +69,8 @@ def bombRoam(ship, conf):
 
 
     if ship.a and ship.aPrev:
-        deltaT = (conf['bomb_delay']-0.25)
+        delay = min(20, conf['bomb_delay'])
+        deltaT = delay/25
         futureX = ship.x + (ship.dx*deltaT)+0.5*(ship.a[0] * cos(ship.a[1]))*pow(deltaT, 2)
         futureY = ship.y + (ship.dy*deltaT)+0.5*(ship.a[0] * sin(ship.a[1]))*pow(deltaT, 2)
         dist = sqrt(pow(futureX-ship.x, 2) + pow(futureY-ship.y, 2))
@@ -78,27 +79,22 @@ def bombRoam(ship, conf):
         if dist > conf['bomb_place_radius']:
             print "Attempting Bomb BOOST"
             try:
-                commands.bomb(ship.x-1, ship.y-1, conf['bomb_delay'])
+                commands.bomb(ship.x-1, ship.y-1, delay)
             except:
                 pass
         else:
             try:
-                commands.bomb(int(futureX), int(futureY), conf['bomb_delay'])
+                commands.bomb(int(futureX), int(futureY), delay)
             except:
                 pass
 
-            print "BOMB at (" + str(futureX) + ", " + str(futureY) + ") : " + str(deltaT)        
+            print "BOMB at (" + str(futureX) + ", " + str(futureY) + ") : " + str(delay)
 
 def goToTarget(ship):
     print "DX: " + str(ship.dx)
     print "DY: " + str(ship.dy)
 
     if ship.hasStopped:
-        print "MOVING TO TARGET"
-        ship.angle = toProperRad(atan2(ship.y-ship.target[1], ship.x-ship.target[0]))
-        ship.accelDir = [ship.x-ship.target[0], ship.y-ship.target[1]]
-        commands.accelerate(ship.angle, 1)
-
         print "SHIP ACCEL DIR: " + str(ship.accelDir)
         if ship.accelDir and sum(map(mul, ship.accelDir, [ship.x-ship.target[0], ship.y-ship.target[1]])) < 0:
             ship.angle = toProperRad(atan2(ship.y-ship.target[1], ship.x-ship.target[0]))
@@ -113,6 +109,10 @@ def isMineOwned(mine, mines):
         if mine == m[1:]:
             return True
     return False
+
+def setTarget(ship, mine):
+    ship.target = mine
+    ship.startTargetTime = time()
 
 if __name__ == '__main__':
     ship = Ship(0,0,0,0,0)
@@ -146,13 +146,23 @@ if __name__ == '__main__':
             print "GOT TARGET"
 
         if not ship.target:
+            ship.hasStopped = False
             bombRoam(ship, conf)
             mines = filter(lambda x: x[0] != 'kanata',status_dict['mines'])
             if mines:
                 print "FOUND TARGET"
-                ship.target = findBestMine(ship, mines)
-                ship.startTargetTime = time()
-                ship.hasStopped = False
+                setTarget(ship, findBestMine(ship, mines))
+            else:
+                try:
+                    # scan = commands.scan(int(conf['scan_radius']*cos(ship.angle) + ship.x),
+                    #     int(conf['scan_radius']*sin(ship.angle) + ship.y))
+                    scan = commands.scan(ship.x, ship.y)
+                    scannerMines = filter(lambda x: x[0] != 'kanata', scan['mines'])
+                    if scannerMines:
+                        print "FOUND SCANNER MINE"
+                        setTarget(ship, findBestMine(ship, scannerMines))
+                except:
+                    pass
         else:
             if time() - ship.startTargetTime > 15:
                 print str(time()) + ' ' + str(ship.startTargetTime)
@@ -160,6 +170,10 @@ if __name__ == '__main__':
             else:
                 if (abs(ship.dx) <= EPSILON and abs(ship.dy) <= EPSILON):
                     ship.hasStopped = True
+                    print "MOVING TO TARGET"
+                    ship.angle = toProperRad(atan2(ship.y-ship.target[1], ship.x-ship.target[0]))
+                    ship.accelDir = [ship.x-ship.target[0], ship.y-ship.target[1]]
+                    commands.accelerate(ship.angle, 1)
                 elif not ship.hasStopped:
                     commands.stop()
 
