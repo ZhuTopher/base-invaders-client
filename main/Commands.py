@@ -77,7 +77,7 @@ class Commands:
         return self.receive()
 
     def stop(self):
-        self.server.send('BREAK')
+        self.server.send('BRAKE')
         return self.receive()
 
     def bomb(self, x, y, *args):

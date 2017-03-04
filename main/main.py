@@ -7,6 +7,8 @@ from random import random
 
 commands = Commands()
 
+EPSILON = 0.005
+
 class Ship:
     def __init__(self, x, y, dx, dy, angle):
         self.x = x
@@ -14,11 +16,18 @@ class Ship:
         self.dx = dx
         self.dy = dy
         self.angle = angle
-        self.targetLocked = False
-        self.stopped = False
+
+        self.target = None
+        self.roaming = False
 
 def toProperRad(a):
     return a + pi
+
+def isMineOwned(mine, mines):
+    for m in mines:
+        if mine == m:
+            return True
+    return False
 
 def calculateScore(ship, pos1, pos2):
     def calc(dist, angle):
@@ -38,22 +47,29 @@ def findBestMine(ship, mines):
     scores = [calculateScore(ship, (ship.x, ship.y), m) for m in mines_coords]
     return mines_coords[scores.index(min(scores))]
 
-def makeDecision(ship, conf, status_dict):
-    mines = filter(lambda x: x[0] != 'kanata',status_dict['mines'])
-    if mines:
-        closestMine = findBestMine(ship, mines)
-        ship.targetLocked = True
-        if ship.stopped:
-            diff = map(sub, (ship.x, ship.y), closestMine)
-            ship.angle = toProperRad(atan2(diff[1], diff[0]))
-            print "GOING AT THIS ANGLE NOW: " + str(ship.angle)
-            accel = sqrt(pow(diff[0], 2) + pow(diff[1], 2)) / conf['vision_radius']
-            commands.accelerate(ship.angle, accel)
-        else:
-            commands.stop()
-    else:
-        if ship.dx == 0 and ship.dy == 0:
-            commands.accelerate(random() * 2 * pi, 1)
+
+def roam(ship):
+    commands.accelerate(random() * 2* pi, 1)
+    ship.roaming = True
+
+def goToTarget(ship):
+    print "DX: " + str(ship.dx)
+    print "DY: " + str(ship.dy)
+
+    if (ship.dx <= EPSILON and ship.dy <= EPSILON):
+        print "MOVING TO TARGET"
+        angle = toProperRad(atan2(ship.y-ship.target[1], ship.x-ship.target[0]))
+        commands.accelerate(angle, 1)
+
+def isMineOwned(mine, mines):
+    print "Checking for" + str(mine)
+
+    for m in mines:
+        print m
+
+        if mine == m[1:]:
+            return True
+    return False
 
 if __name__ == '__main__':
     ship = Ship(0,0,0,0,0)
@@ -64,10 +80,25 @@ if __name__ == '__main__':
         ship.y = status_dict['y']
         ship.dx = status_dict['dx']
         ship.dy = status_dict['dy']
+
         ship.angle = toProperRad(atan2(ship.y, ship.x))
-        if not ship.targetLocked:
-            makeDecision(ship, conf, status_dict)
+
+        owned = filter(lambda x: x[0] == 'kanata',status_dict['mines'])
+        if (ship.target and isMineOwned(ship.target, owned)):
+            ship.target = None
+            print "GOT TARGET"
+
+        if not ship.target:
+            if not ship.roaming:
+                print "START ROAMING"
+                roam(ship)
+            else:
+                mines = filter(lambda x: x[0] != 'kanata',status_dict['mines'])
+                if mines:
+                    print "FOUND TARGET"
+                    ship.target = findBestMine(ship, mines)
+                    ship.roaming = False
+                    commands.stop()
         else:
-            if ship.dx < 0.01 and ship.dy < 0.01:
-                ship.targetLocked = False
-                ship.stopped = True
+            goToTarget(ship)
+
