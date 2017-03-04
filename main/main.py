@@ -7,20 +7,22 @@ from random import random
 
 commands = Commands()
 
+class Ship:
+    def __init__(self, x, y, dx, dy, angle):
+        self.x = x
+        self.y = y
+        self.dx = dx
+        self.dy = dy
+        self.angle = angle
+        self.targetLocked = False
+        self.stopped = False
+
 def toProperRad(a):
     return a + pi
 
-# ship stats
-x = 0
-y = 0
-dx = 0
-dy = 0
-my_angle = toProperRad(atan2(y, x))
-targetLocked = False
-
-def calculateScore(pos1, pos2):
+def calculateScore(ship, pos1, pos2):
     def calc(dist, angle):
-        angleScore = abs(my_angle-angle)
+        angleScore = abs(ship.angle-angle)
         return dist
 
     diff = map(sub, pos2, pos1)
@@ -31,36 +33,41 @@ def calculateScore(pos1, pos2):
 
     return scores
 
-def findBestMine(mines):
+def findBestMine(ship, mines):
     mines_coords = [m[1:] for m in mines]
-    scores = [calculateScore((x, y), m) for m in mines_coords]
+    scores = [calculateScore(ship, (ship.x, ship.y), m) for m in mines_coords]
     return mines_coords[scores.index(min(scores))]
 
-def makeDecision(conf, status_dict):
-    mines = status_dict['mines']
+def makeDecision(ship, conf, status_dict):
+    mines = filter(lambda x: x[0] != 'kanata',status_dict['mines'])
     if mines:
-        closestMine = findBestMine(mines)
-        commands.stop()
-        targetLocked = True
-        diff = map(sub, (x, y), closestMine)
-        angle = toProperRad(atan2(diff[1], diff[0]))
-        print "GOING AT THIS ANGLE NOW: " + str(angle)
-        accel = sqrt(pow(diff[0], 2) + pow(diff[1], 2)) / conf['vision_radius']
-        commands.accelerate(angle, accel)
+        closestMine = findBestMine(ship, mines)
+        ship.targetLocked = True
+        if ship.stopped:
+            diff = map(sub, (ship.x, ship.y), closestMine)
+            ship.angle = toProperRad(atan2(diff[1], diff[0]))
+            print "GOING AT THIS ANGLE NOW: " + str(ship.angle)
+            accel = sqrt(pow(diff[0], 2) + pow(diff[1], 2)) / conf['vision_radius']
+            commands.accelerate(ship.angle, accel)
+        else:
+            commands.stop()
     else:
-        if dx == 0 and dy == 0:
+        if ship.dx == 0 and ship.dy == 0:
             commands.accelerate(random() * 2 * pi, 1)
 
 if __name__ == '__main__':
+    ship = Ship(0,0,0,0,0)
     while(True):
         conf = commands.configurations()
         status_dict = commands.getStatus()
-        x = status_dict['x']
-        y = status_dict['y']
-        dx = status_dict['dx']
-        dy = status_dict['dy']
-        if not targetLocked:
-            makeDecision(conf, status_dict)
+        ship.x = status_dict['x']
+        ship.y = status_dict['y']
+        ship.dx = status_dict['dx']
+        ship.dy = status_dict['dy']
+        ship.angle = toProperRad(atan2(ship.y, ship.x))
+        if not ship.targetLocked:
+            makeDecision(ship, conf, status_dict)
         else:
-            if dx == 0.0 and dy == 0.0:
-                targetLocked == False
+            if ship.dx < 0.01 and ship.dy < 0.01:
+                ship.targetLocked = False
+                ship.stopped = True

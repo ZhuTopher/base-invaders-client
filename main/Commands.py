@@ -101,7 +101,6 @@ class Commands:
             scores.append((words[i], int(words[i + 1]), int(words[i + 2])))
         return scores
 
-
     def configurations(self):
         self.server.send('CONFIGURATIONS')
         words = self.receive().split()
