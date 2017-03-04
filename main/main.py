@@ -11,6 +11,8 @@ commands = Commands()
 
 EPSILON = 0.05
 
+node_set = set()
+
 class Ship:
     def __init__(self, x, y, dx, dy, angle):
         self.xPrev = x
@@ -149,9 +151,12 @@ if __name__ == '__main__':
             ship.hasStopped = False
             bombRoam(ship, conf)
             mines = filter(lambda x: x[0] != 'kanata',status_dict['mines'])
+            for m in mines:
+                node_set.add(m)
             if mines:
-                print "FOUND TARGET"
+                print "FOUND VISION TARGET"
                 setTarget(ship, findBestMine(ship, mines))
+                continue
             else:
                 try:
                     # scan = commands.scan(int(conf['scan_radius']*cos(ship.angle) + ship.x),
@@ -159,10 +164,17 @@ if __name__ == '__main__':
                     scan = commands.scan(ship.x, ship.y)
                     scannerMines = filter(lambda x: x[0] != 'kanata', scan['mines'])
                     if scannerMines:
-                        print "FOUND SCANNER MINE"
+                        print "FOUND SCANNER TARGET"
                         setTarget(ship, findBestMine(ship, scannerMines))
+                        continue
                 except:
                     pass
+            
+            if node_set:
+                cacheMine = findBestMine(ship, list(node_set))
+                if not isMineOwned(cacheMine, owned):
+                    print "FOUND TARGET IN CACHE"
+                    setTarget(ship, cacheMine)
         else:
             if time() - ship.startTargetTime > 15:
                 print str(time()) + ' ' + str(ship.startTargetTime)
