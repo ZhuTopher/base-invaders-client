@@ -24,7 +24,7 @@ class Commands:
 
     def receive(self):
         try:
-            data = self.server.recv(2048)
+            data = self.server.recv(4096)
             if data:
                 return data.decode('utf-8')
             else:

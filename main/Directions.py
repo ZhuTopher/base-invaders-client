@@ -26,8 +26,12 @@ def targettedAccel(ship, xMine, yMine):
 	ax = (vMag*(cos(ship.angle))) - (vMag*(cos(mineTheta)))
 	ay = (vMag*(sin(ship.angle))) - (vMag*(sin(mineTheta)))
 
-	aMag = sqrt(pow(ax, 2), pow(ay, 2))
+	aMag = sqrt(pow(ax, 2) + pow(ay, 2))
 	theta = toProperRad(atan2(ay, ax))
+	print "ax: " + str(ax)
+	print "ay: " + str(ay)
+	print "aMag: " + str(aMag)
+	print "THETA: " + str(theta)
 
 
 	return (aMag, theta)

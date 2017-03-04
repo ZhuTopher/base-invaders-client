@@ -1,5 +1,5 @@
 from Commands import Commands
-from Directions import calculateAccel
+from Directions import calculateAccel, targettedAccel
 
 from operator import sub
 
@@ -33,6 +33,9 @@ class Ship:
 
         self.target = None
 
+def flipAngle(a):
+    return 2 * pi - a
+
 def toProperRad(a):
     return a + pi
 
@@ -55,10 +58,9 @@ def findBestMine(ship, mines):
     return mines_coords[scores.index(min(scores))]
 
 def isMineOwned(mine, mines):
-    mines_coords = [m[1:] for m in mines]
-    if ((m[0] == mine[0]) and (m[1] == mine [1])):
-        return True
-
+    for m in mines:
+        if mine == m:
+            return True
     return False
 
 def makeDecision(ship, conf, status_dict):
@@ -66,20 +68,18 @@ def makeDecision(ship, conf, status_dict):
         # Change ship.a to try and path towards ship.target
         ship.aPrev = ship.a
         ship.a = targettedAccel(ship, ship.target[0], ship.target[1])
-        commands.accelerate(ship.angle, ship.a[0])
+        commands.accelerate(flipAngle(ship.angle), 1 if (ship.a[0] > 1) else ship.a[0])
     else:
         mines = filter(lambda x: x[0] != 'kanata',status_dict['mines'])
         if mines:
             ship.target = findBestMine(ship, mines)
+            print "LOCKED TO: " + str(ship.target)
             ship.targetLocked = True
 
             # Change ship.a to try and path towards ship.target
             ship.aPrev = ship.a
             ship.a = targettedAccel(ship, ship.target[0], ship.target[1])
-            if ship.a[0] > 1:
-               commands.accelerate(ship.angle, 1)
-            else:
-                commands.accelerate(ship.angle, ship.a)
+            commands.accelerate(flipAngle(ship.a[1]), 1 if (ship.a[0] > 1) else ship.a[0])
 
             # if ship.stopped:
             #     diff = map(sub, (ship.x, ship.y), closestMine)
@@ -90,7 +90,7 @@ def makeDecision(ship, conf, status_dict):
             # else:
             #     commands.stop()
         else:
-            commands.accelerate(ship.angle, 1)
+            commands.accelerate(flipAngle(ship.angle), 1)
 
 if __name__ == '__main__':
     ship = Ship(0,0,0,0,0)
@@ -117,11 +117,12 @@ if __name__ == '__main__':
         ship.a = calculateAccel(ship)
 
         minesOwned = filter(lambda x: x[0] == 'kanata',status_dict['mines'])
-        if (ship.targetLocked and (isMineOwned(ship.target, minesOwned))):
+        if (ship.targetLocked and isMineOwned(ship.target, minesOwned)):
             ship.target = None
             ship.targetLocked = False
+            print "UNLOCKED"
 
-        if ship.aPrev[0] != -1:
+        if ship.aPrev:
             makeDecision(ship, conf, status_dict)
 
         # else:
