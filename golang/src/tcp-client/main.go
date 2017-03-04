@@ -28,7 +28,7 @@ func GetServerAddr() (string, error) {
 	return addr, nil
 }
 */
-// Return our client's fmtin credentials
+// Return our client's login credentials
 func GetLoginCred() (string, string, error) {
 	username := os.Getenv("USERNAME")
 	pass := os.Getenv("PASSWORD")
@@ -74,30 +74,84 @@ func main() {
 	}
 	defer conn.Close()
 
-	// Send fmtin credentials
+	// Send login credentials
 	credentials := fmt.Sprintf("%s %s\n", user, pass)
 
   	fmt.Printf("Logging in as: %s", credentials)
   	fmt.Fprintf(conn, credentials)
 
+    // Start Commands server
+    commChan := make(chan string)
+    go StartCommandsServer(&commChan)
 
-  for {
-    // read in input from stdin
-    reader := bufio.NewReader(os.Stdin)
-    fmt.Print("Next command: ")
-    text, _ := reader.ReadString('\n')
 
-    if (text == "q\n") {
-    	break
+    for {
+        select {
+        case cmd := <-commChan:
+            if (cmd == "q") {
+                commChan <- "q"
+                break
+            }
+
+            // send to socket
+            fmt.Fprintf(conn, cmd + "\n")
+            // listen for reply
+            message, _ := bufio.NewReader(conn).ReadString('\n')
+            fmt.Printf("Message from server: %s\n", message)
+            commChan <- message
+        }
     }
 
-    // send to socket
-    fmt.Fprintf(conn, text + "\n")
-    // listen for reply
-    message, _ := bufio.NewReader(conn).ReadString('\n')
-    fmt.Printf("Message from server: %s", message)
-  }
+    fmt.Println("Successfully closing BI Conn")
+
+    // deferred conn.Close is called
 }
+
+func StartCommandsServer(commChan *chan string) {
+    defer func(commChan *chan string){
+        (*commChan) <- "q" // incidicate to close BI conn
+    }(commChan)
+
+    service := ":6060"
+    tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
+    if err != nil {
+        fmt.Printf("Failed to resolve tcp service: %v", err)
+        return
+    }
+
+    listener, err := net.ListenTCP("tcp", tcpAddr)
+    if err != nil {
+        fmt.Printf("Failed to listen to tcp service: %v", err)
+        return
+    }
+
+    conn, err := listener.Accept()
+    if err != nil {
+        fmt.Printf("Failed to accept command tcp client: %v", err)
+        return
+    }
+    defer conn.Close()
+
+    var buf [512]byte
+    for {
+        n, err := conn.Read(buf[0:])
+        if err != nil {
+            break
+        }
+
+        command := string(buf[0:n])
+        fmt.Println(command)
+        (*commChan) <- command
+        result := <-(*commChan)
+        _, err2 := conn.Write([]byte(result))
+        if err2 != nil {
+            break
+        }
+    }
+
+    fmt.Println("Successfully closing Commands Conn")
+}
+
 
 /* 
 package main
