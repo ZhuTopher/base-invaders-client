@@ -34,6 +34,7 @@ class Ship:
 
         self.startTargetTime = time()
         self.hasStopped = False
+        self.hasScanned = False
 
 def toProperRad(a):
     return a + pi
@@ -68,7 +69,7 @@ def bombRoam(ship, conf):
         commands.accelerate(ship.angle, 1)
 
 
-    if ship.a and ship.aPrev:
+    if ship.hasScanned and ship.a and ship.aPrev:
         delay = min(20, conf['bomb_delay'])
         deltaT = delay/25
         futureX = ship.x + (ship.dx*deltaT)+0.5*(ship.a[0] * cos(ship.a[1]))*pow(deltaT, 2)
@@ -114,6 +115,10 @@ def setTarget(ship, mine):
     ship.target = mine
     ship.startTargetTime = time()
 
+def resetRoam(ship):
+    ship.hasScanned = False
+    ship.target = None
+
 if __name__ == '__main__':
     ship = Ship(0,0,0,0,0)
     while(True):
@@ -142,7 +147,7 @@ if __name__ == '__main__':
 
         owned = filter(lambda x: x[0] == 'kanata',status_dict['mines'])
         if (ship.target and isMineOwned(ship.target, owned)):
-            ship.target = None
+            resetRoam(ship)
             print "GOT TARGET"
 
         if not ship.target:
@@ -150,7 +155,7 @@ if __name__ == '__main__':
             bombRoam(ship, conf)
             mines = filter(lambda x: x[0] != 'kanata',status_dict['mines'])
             if mines:
-                print "FOUND TARGET"
+                print "FOUND VISION TARGET"
                 setTarget(ship, findBestMine(ship, mines))
             else:
                 try:
@@ -159,14 +164,17 @@ if __name__ == '__main__':
                     scan = commands.scan(ship.x, ship.y)
                     scannerMines = filter(lambda x: x[0] != 'kanata', scan['mines'])
                     if scannerMines:
-                        print "FOUND SCANNER MINE"
+                        print "FOUND SCANNER TARGET"
                         setTarget(ship, findBestMine(ship, scannerMines))
                 except:
                     pass
+                finally:
+                    ship.hasScanned = True
         else:
-            if time() - ship.startTargetTime > 15:
+            if time() - ship.startTargetTime > 10:
                 print str(time()) + ' ' + str(ship.startTargetTime)
-                ship.target = None
+                resetRoam(ship)
+                print "ABORT TARGET"
             else:
                 if (abs(ship.dx) <= EPSILON and abs(ship.dy) <= EPSILON):
                     ship.hasStopped = True
