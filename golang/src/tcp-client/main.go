@@ -4,7 +4,7 @@ import (
 	"fmt"
     "log"
 	"errors"
-	"os"
+//	"os"
 	"net"
 
 	"bufio"
@@ -12,7 +12,7 @@ import (
 
 // Return the Bloomburg game server's address
 func GetServerAddr() (string, error) {
-	addr := os.Getenv("BASE_IVDR_ADDR")
+	addr := "codebb.cloudapp.net:17429/"//os.Getenv("BASE_IVDR_ADDR")
 	if addr == "" {
 		return "", errors.New("Missing/empty environment variable")
 	}
@@ -30,8 +30,8 @@ func GetServerAddr() (string, error) {
 */
 // Return our client's login credentials
 func GetLoginCred() (string, string, error) {
-	username := os.Getenv("USERNAME")
-	pass := os.Getenv("PASSWORD")
+	username := "kanata" //os.Getenv("USERNAME")
+	pass := "yaboy" //os.Getenv("PASSWORD")
 
 	if (username == "" || pass == "") {
 		return "", "", errors.New("Missing/empty environment variable")
